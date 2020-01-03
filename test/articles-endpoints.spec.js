@@ -3,7 +3,7 @@ const knex = require('knex')
 const app = require('../src/app')
 const { makeArticlesArray } = require('./articles.fixtures')
 
-describe('Articles Endpoints', function() {
+describe.only('Articles Endpoints', function() {
     let db
 
     before('make knex instance', () => {
@@ -20,11 +20,11 @@ describe('Articles Endpoints', function() {
 
     afterEach('cleanup', () => db('blogful_articles').truncate())
 
-    describe(`GET /articles`, () => {
+    describe(`GET /api/articles`, () => {
         context(`Given no articles`, () => {
             it(`responds with 200 and an empty list`, () => {
                 return supertest(app)
-                    .get('/articles')
+                    .get('/api/articles')
                     .expect(200, [])
             })
         })
@@ -38,20 +38,20 @@ describe('Articles Endpoints', function() {
                     .insert(testArticles)
             })
 
-            it('GET /articles responds with 200 and all of the articles', () => {
+            it('GET /api/articles responds with 200 and all of the articles', () => {
                 return supertest(app)
-                    .get('/articles')
+                    .get('/api/articles')
                     .expect(200, testArticles)
             })
         })
     })
 
-    describe(`GET /articles/:article_id`, () => {
+    describe(`GET /api/articles/:article_id`, () => {
         context(`Given no articles`, () => {
             it(`responds with 404`, () => {
                 const articleId = 123456
                 return supertest(app)
-                    .get(`/articles/${articleId}`)
+                    .get(`/api/articles/${articleId}`)
                     .expect(404, { error: { message: `Article doesn't exist` } })
             })
         })
@@ -65,17 +65,17 @@ describe('Articles Endpoints', function() {
                     .insert(testArticles)
             })
 
-            it('GET /article/:article_id responds with 200 and the specified article', () => {
+            it('GET /api/article/:article_id responds with 200 and the specified article', () => {
                 const articleId = 2
                 const expectedArticle = testArticles[articleId - 1]
                 return supertest(app)
-                    .get(`/articles/${articleId}`)
+                    .get(`/api/articles/${articleId}`)
                     .expect(200, expectedArticle)
             })
         })
     })
 
-    describe(`POST /articles`, () => {
+    describe(`POST /api/articles`, () => {
         it(`creates an article, responding with 201 and the new article`, () => {
             this.retries(3)
             const newArticle = {
@@ -84,7 +84,7 @@ describe('Articles Endpoints', function() {
                 content: 'Test new article content...'
             }
             return supertest(app)
-                .post('/articles')
+                .post('/api/articles')
                 .send(newArticle)
                 .expect(201)
                 .expect(res => {
@@ -92,14 +92,14 @@ describe('Articles Endpoints', function() {
                     expect(res.body.style).to.eql(newArticle.style)
                     expect(res.body.content).to.eql(newArticle.content)
                     expect(res.body).to.have.property('id')
-                    expect(res.headers.location).to.eql(`/articles/${res.body.id}`)
+                    expect(res.headers.location).to.eql(`/api/articles/${res.body.id}`)
                     const expected = new Date().toLocaleString()
                     const actual = new Date(res.body.date_published).toLocaleString()
                     expect(actual).to.eql(expected)
                 })
                 .then(postRes =>
                     supertest(app)
-                        .get(`/articles/${postRes.body.id}`)
+                        .get(`/api/articles/${postRes.body.id}`)
                         .expect(postRes.body)
                 )
         })
@@ -117,7 +117,7 @@ describe('Articles Endpoints', function() {
                 delete newArticle[field]
 
                 return supertest(app)
-                    .post('/articles')
+                    .post('/api/articles')
                     .send(newArticle)
                     .expect(400, {
                         error: { message: `Missing '${field}' in request body` }
@@ -126,19 +126,19 @@ describe('Articles Endpoints', function() {
         })
     })
 
-    describe.only(`DELETE /articles/:article_id`, () => {
+    describe(`DELETE /api/articles/:article_id`, () => {
         context('Given no articles', () => {
             it('responds with 404', () => {
                 const articleId = 123456
                 return supertest(app)
-                    .delete(`/articles/${articleId}`)
+                    .delete(`/api/articles/${articleId}`)
                     .expect(404, {
                         error: { message: `Article doesn't exist` }
                     })
             })
         })
         
-        context.only('Given there are articles in the database', () => {
+        context('Given there are articles in the database', () => {
             const testArticles = makeArticlesArray()
 
             beforeEach('insert articles', () => {
@@ -151,11 +151,11 @@ describe('Articles Endpoints', function() {
                 const idToDelete = 2
                 const expectedArticles = testArticles.filter(article => article.id !== idToDelete)
                 return supertest(app)
-                    .delete(`/articles/${idToDelete}`)
+                    .delete(`/api/articles/${idToDelete}`)
                     .expect(204)
                     .then(res => 
                         supertest(app)
-                            .get(`/articles`)
+                            .get(`/api/articles`)
                             .expect(expectedArticles)
                     )
             })
